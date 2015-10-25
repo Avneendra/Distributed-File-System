@@ -126,12 +126,15 @@ main(int argc, char *argv[])
 
     cc= strdup(command);
     words[0] = strtok(cc," ");
-		words[1] = strtok(NULL,"\n");
+
+    if(strcmp("LIST\n",words[0]))
+		  words[1] = strtok(NULL,"\n");
     
     printf("Word0 %s \n",words[0]);
-    printf("Word1 %s \n",words[1]);
+    if(strcmp("LIST\n",words[0]))   
+      printf("Word1 %s \n",words[1]);
 
-    if(!strcmp("LIST",words[0]))
+    if(!strcmp("LIST\n",words[0]))
       option=1;
     
     if(!strcmp("GET",words[0]))
@@ -140,9 +143,11 @@ main(int argc, char *argv[])
     if(!strcmp("PUT",words[0]))
       option=3;
     
-
+    
     printf("OPTION %d\n",option);
-    strcpy(filename,words[1]);
+    
+    if(strcmp("LIST\n",words[0]))
+      strcpy(filename,words[1]);
   
     printf("FILENAME %s\n",filename);
     switch(option)
@@ -181,20 +186,31 @@ void list()
 	char	*portnum[3] = "10004";
 	char	*host = "localhost";*/	
 	
-	char message[4], buf[300];
-  memset(message,0,4);
-  memset(buf,0,300);
+	char message[10], buf[100],msg[]="o";
+  memset(message,0,10);
+  memset(buf,0,100);
 
 	strcpy(message,"LIST");
 	 for(i=0;i<4;i++)
 	{
-	    if(send(s[i], message, sizeof message, 0)<0)
+	    if(send(s[i], message, strlen(message), 0)<0)
 		   printf("sending failed\n");
 	
 	    printf("Receiving  list of files \n");
-	    if((nofbytes = recv(s[i],buf,sizeof buf,0))>0) // check while too 
+
+      while(1)
+      {
+
+          nofbytes = recv(s[i],buf,100,0); // check while too 
         	printf("%s \n",buf);
-	}
+	        
+          if(!strcmp(buf,"F"))
+            break;
+          //nofbytes=send(s[i],msg,strlen(msg),0);
+          //printf("sent ok\n");
+          memset(buf,0,100);
+      }
+  }
 	
 
 }

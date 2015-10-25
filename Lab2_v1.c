@@ -104,7 +104,7 @@ int dfs(int fd,int servernum)
 	char *userpass[2]={NULL} ,*storeduserpass[2]={NULL},*request[2]={NULL},*cp=NULL,*cq=NULL,*cr=NULL;
 	char *root="/home/avneendra/Desktop/netsys/Lab2/";
 	// For Authentication..here buf will have the username password of the client..if it matches, then next requests will be processed 
-	char fullcommand[300],readtext[200],buffer[50];;
+	char fullcommand[300],readtext[200],buffer[100];
    
    memset(recfile,0,BUFSIZ);
    memset(buf,0,BUFSIZ);
@@ -118,7 +118,7 @@ int dfs(int fd,int servernum)
    memset(t4,0,100);
    memset(fullcommand,0,300);
    memset(readtext,0,200);
-   memset(buffer,0,50);
+   memset(buffer,0,100);
   // memset(come,0,1024);
    nofbyte=recv(fd, buf, sizeof buf,0); //USErname and password
 	if (nofbyte<0)
@@ -184,10 +184,12 @@ int dfs(int fd,int servernum)
 				
 				cq = strdup (buf); 
 				request[0]= strtok(cq," \n");
-				request[1]= strtok(NULL," \n");
+				if(strcmp("LIST",request[0]))
+					request[1]= strtok(NULL," \n");
 				
 				printf("Request0 %s\n",request[0]);
-				printf("Request1 %s\n",request[1]);
+				if(strcmp("LIST",request[0]))
+					printf("Request1 %s\n",request[1]);
 
 				if(!strcmp(request[0],"LIST"))
 				{
@@ -198,25 +200,33 @@ int dfs(int fd,int servernum)
 					strcat(directory,servername);
 					//programmticcally find out and all the files that exist in this folder and just their names to client
 					strcat(directory,userpass[0]);
-					
+					printf("Directory %s\n",directory);
 					
 					strcpy(fullcommand,"cd ");
 					strcat(fullcommand,directory);
 					strcat(fullcommand," && ls > ");
 					strcat(fullcommand,directory);
-					strcat(fullcommand,"server.txt");
+					strcat(fullcommand,"/server.txt");
+					printf("FULLCOMMAND %s\n",fullcommand);
 					system(fullcommand);
 				    
 				    strcpy(readtext,directory);
 				    strcat(readtext,"/server.txt");
+				    printf("FULLPATH %s\n",readtext);
                     FILE *txtopen= fopen(readtext,"r");
-                    while(fscanf(txtopen,"%s",buffer)!=EOF)
-                    {
-                    	 if((nofbyte=send(fd,buffer,strlen(buffer),0))<0)  //write file descriptor of socket here
-                    	    exit(1);
+				 
+				    char msging[10],finish[1]="F";
 
+				   while(fscanf(txtopen,"%s",buffer)!=EOF)
+                    {
+                    	printf("buffer %s\n",buffer);
+                    	nofbyte=send(fd,buffer,100,0);  //write file descriptor of socket here
+                    
+                    //	if((nofbytes=recv(fd,msging,strlen(msging),0))<0)
+					//		printf("Error receiving file \n");
                     }
                     fclose(txtopen);
+                    nofbyte=send(fd,finish,1,0); 
 				}
 				
 				if(!strcmp(request[0],"GET"))
