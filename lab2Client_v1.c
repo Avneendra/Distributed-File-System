@@ -33,8 +33,8 @@ main(int argc, char *argv[])
 {
 	int i,option=0;
 	char line[100],filename[50],command[50];
-	char *cp=NULL,*cq=NULL,*reading[3]={NULL},*dfs1addr=NULL,*dfs2addr=NULL,*dfs3addr=NULL,*dfs4addr=NULL,username[20],password[20],*words[2]={NULL},*cc=NULL,userpass[60];
-
+	char *cp=NULL,*cq=NULL,*reading[4]={NULL},*dfs1addr=NULL,*dfs2addr=NULL,*dfs3addr=NULL,*dfs4addr=NULL,username[20],password[20],*words[2]={NULL},*cc=NULL,userpass[60];
+  char pn1[5],pn2[5],pn3[5],pn4[5],auth[1];
   char  *host = "localhost";  /* host to use if none supplied */
 	memset(line,0,100);
   memset(filename,0,50);
@@ -42,21 +42,8 @@ main(int argc, char *argv[])
   memset(username,0,20);
   memset(password,0,20);
   memset(userpass,0,60);
-  	/*switch (argc) {
-	case 1:
-		host = "localhost";
-		break;
-	case 3:
-		host = argv[2];
-		
-	case 2:
-		portnum = argv[1];
-		break;
-	default:
-		fprintf(stderr, "usage: %s [host [port]]\n", argv[0]);
-		exit(1);
-	}*/
-
+  memset(auth,0,1);
+  //memset(text,0,2048);
 	FILE *fp=fopen("/home/avneendra/Desktop/netsys/Lab2/DFC/dfc.confg","rb");
 	if(fp==NULL)
 	printf("Cant open");
@@ -66,23 +53,25 @@ main(int argc, char *argv[])
 		cp = strdup (line); 
 		reading[0]= strtok(cp," ");
 		reading[1]= strtok(NULL," ");
-    
+    reading[2]= strtok(NULL," ");
+    reading[3]= strtok(NULL," ");
+
 		//Reading[0] will have first word of each line while Reading[1] will have second 
 		if(!strcmp(reading[0],"Server"))
 		{
-      printf("All good\n");
-			// if(!strcmp(reading[1],"DFS1"))
-			//    memcpy(dfs1addr,reading[2],strlen(reading[2]));
+      
+			     if(!strcmp(reading[1],"DFS1"))
+			       strcpy(pn1,reading[3]);
 				
-			// if(!strcmp(reading[1],"DFS2"))
-			//    memcpy(dfs2addr,reading[2],strlen(reading[2]));
+			     if(!strcmp(reading[1],"DFS2"))
+			       strcpy(pn2,reading[3]);
 			
-			// if(!strcmp(reading[1],"DFS3"))
-			//    memcpy(dfs3addr,reading[2],strlen(reading[2]));
+			     if(!strcmp(reading[1],"DFS3"))
+			       strcpy(pn3,reading[3]);
 
-			// if(!strcmp(reading[1],"DFS4"))
-			//    memcpy(dfs4addr,reading[2],strlen(reading[2]));
-			 //Reading[2] has the address
+			     if(!strcmp(reading[1],"DFS4"))
+			      strcpy(pn4,reading[3]);
+			 
 		}
 		if(!strcmp(reading[0],"Username"))
 			strcpy(username,reading[1]);
@@ -93,6 +82,11 @@ main(int argc, char *argv[])
 	}
 	fclose(fp);
   
+  printf("Port number 1 is %s\n",pn1);
+  printf("Port number 2 is %s\n",pn2);
+  printf("Port number 3 is %s\n",pn3);
+  printf("Port number 4 is %s\n",pn4);
+
   printf("Username %s",username);
   printf("Password %s",password);
   
@@ -100,26 +94,31 @@ main(int argc, char *argv[])
   strcat(userpass,password);
   printf("%s\n",userpass);
 
-  s[0] = connectsock(host,"10001");
-  s[1] = connectsock(host,"10002");
-  s[2] = connectsock(host,"10003");
-  s[3] = connectsock(host,"10004");
+  s[0] = connectsock(host,pn1);
+  s[1] = connectsock(host,pn2);
+  s[2] = connectsock(host,pn3);
+  s[3] = connectsock(host,pn4);
     
- for(i=0;i<4;i++)
-  {
-   
-      if(send(s[i],userpass, strlen(userpass), 0)<0)
-       printf("sending failed\n");
-  
-      // printf("Receiving  list of files \n");
-      // if((nofbytes = recv(s[i],buf,sizeof buf,0))>0) // check while too 
-      //     printf("%s \n",buf);
 
-  }
+  while(1)
+  { 
+    for(i=0;i<4;i++)
+    {
+      int n;
+      if(send(s[i],userpass,strlen(userpass), 0)<0)
+       printf("sending failed\n");
+      n=recv(s[i],auth,1,0);
+      
+      if(!strcmp(auth,"F"))
+      {
+        printf("Incorrect username or password\n");
+        exit(0);
+      }
+
+    }
     
   //send username password to each server see if it matches or not
-	while(1)
-	{	
+	
 		printf(" Enter the command \n");
     fgets (command,50, stdin);
     printf("%s",command);
@@ -153,17 +152,13 @@ main(int argc, char *argv[])
     switch(option)
 		{
 			//Send username password first to authenticate
-			case 1: // for LIST command--contact all servers and see what files you can get back..and try and reconstruct them
+			case 1: 
 						  list();
 						  break;
-			case 2: // For GET command--enter what file you want to get and call all servers to see if you can reconstruct the file
-					//printf("Enter file name \n");
-					//scanf("%s",filename);
+			case 2:
 					   downloading(filename,s[0],s[1],s[2],s[3]);
 					   break;
-			case 3:	// For PUT command--enter the filename that you want to send..break it into pieces and according to MDblah blah ..value
-					//printf("Enter file name \n");
-					//scanf("%s",filename);
+			case 3:	
 					   uploading(filename);
 					   break;
 			default:
@@ -179,12 +174,6 @@ main(int argc, char *argv[])
 void list()
 {
    int nofbytes,i;
-/*    char    *portnum[4];
-	char	*portnum[0] = "10001";	
-	char	*portnum[1] = "10002";
-	char	*portnum[2] = "10003";
-	char	*portnum[3] = "10004";
-	char	*host = "localhost";*/	
 	
 	char message[10], buf[100],msg[]="o";
   memset(message,0,10);
@@ -200,14 +189,11 @@ void list()
 
       while(1)
       {
-
           nofbytes = recv(s[i],buf,100,0); // check while too 
         	printf("%s \n",buf);
 	        
           if(!strcmp(buf,"F"))
             break;
-          //nofbytes=send(s[i],msg,strlen(msg),0);
-          //printf("sent ok\n");
           memset(buf,0,100);
       }
   }
@@ -224,13 +210,7 @@ void downloading(char *name,int s0,int s1, int s2, int s3)
 	Repeat this process 3 more times for 3 more servers.*/
 
 {
-	// int s[4],i, char *portnum[4];
-	// char	*portnum[0] = "10001";	/* default server port number	*/
-	// char	*portnum[1] = "10002";
-	// char	*portnum[2] = "10003";
-	// char	*portnum[3] = "10004";
-	// char	*host = "localhost";	/* host to use if none supplied	*/
-	
+
 	// //SEND it to each server DFS1,DFS2,DF3,DFS4 GET name  one at a time
 	 char message[20],*p[8]={NULL},text1[512],text2[512],text3[512],text4[512],text5[512],text6[512],text7[512],text8[512];
 	 int i=0,j,m[4]={0,0,0,0};
@@ -378,10 +358,16 @@ char* protocol(int s)
 		printf("Start receiving file\n");
     
     nofbytes=0;
+
+   
+
 		nofbytes=recv(s,reply2,2048,0);
     
     if(s==3 || s==4)
-		nofbytes=recv(s,reply2,2048,0);
+    {
+          nofbytes=recv(s,reply2,2048,0);
+    }
+		
 
     printf("NOB 2 %d \n",nofbytes);
     printf("File received %s \n",reply2);
@@ -733,8 +719,7 @@ void uploading(char *name)
 
 void sendtoserver(FILE *fpart,char *part,int server,int s,int size)
 {
-	//real action part...sending PUT and filename to particular server first..then if you get OK from server..send the actual file.. send another part and so on
-
+	
   int i,nofbytes[4];
 	char a[1],buf[24],b;
   int n[4],bytes;
