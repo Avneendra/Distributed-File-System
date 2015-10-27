@@ -18,7 +18,7 @@ void downloading(char *name,int s0,int s1, int s2, int s3);
 void writetoclient(FILE *fclient,FILE *fpart);
 char* protocol(int s);
 int errexit(const char *format, ...);
-int hextodec(char a);
+int hextodec(int c);
 int connectsock(const char *host, const char *portnum);
 void sendtoserver(FILE *fpart,char *part,int server,int s,int size);
 int sending(int fd,char *part,int size);
@@ -27,12 +27,15 @@ int sending(int fd,char *part,int size);
  *------------------------------------------------------------------------
  */
 char *text=NULL;
+char *root="/home/avneendra/Desktop/netsys/Lab2/DFC/";
+
 int s[4];
+  int fg=0;
 int
 main(int argc, char *argv[])
 {
 	int i,option=0;
-	char line[100],filename[50],command[50];
+	char path[200],line[100],filename[50],command[50],confg[9];
 	char *cp=NULL,*cq=NULL,*reading[4]={NULL},*dfs1addr=NULL,*dfs2addr=NULL,*dfs3addr=NULL,*dfs4addr=NULL,username[20],password[20],*words[2]={NULL},*cc=NULL,userpass[60];
   char pn1[5],pn2[5],pn3[5],pn4[5],auth[1];
   char  *host = "localhost";  /* host to use if none supplied */
@@ -43,8 +46,13 @@ main(int argc, char *argv[])
   memset(password,0,20);
   memset(userpass,0,60);
   memset(auth,0,1);
-  //memset(text,0,2048);
-	FILE *fp=fopen("/home/avneendra/Desktop/netsys/Lab2/DFC/dfc.confg","rb");
+  memset(confg,0,9);
+  
+  strcpy(confg,"dfc.confg");
+  strcpy(path,root);
+  strcat(path,confg);
+	
+  FILE *fp=fopen(path,"rb");
 	if(fp==NULL)
 	printf("Cant open");
 	
@@ -82,23 +90,20 @@ main(int argc, char *argv[])
 	}
 	fclose(fp);
   
-  printf("Port number 1 is %s\n",pn1);
-  printf("Port number 2 is %s\n",pn2);
-  printf("Port number 3 is %s\n",pn3);
-  printf("Port number 4 is %s\n",pn4);
-
   printf("Username %s",username);
   printf("Password %s",password);
   
   strcpy(userpass,username);
   strcat(userpass,password);
-  printf("%s\n",userpass);
 
-  s[0] = connectsock(host,pn1);
-  s[1] = connectsock(host,pn2);
-  s[2] = connectsock(host,pn3);
-  s[3] = connectsock(host,pn4);
-    
+  if((s[0] = connectsock(host,pn1))<0)
+    printf("Not connected to server 1\n");
+  if((s[1] = connectsock(host,pn2))<0)
+    printf("Not connected to server 2\n");
+  if((s[2] = connectsock(host,pn3))<0)
+    printf("Not connected to server 3\n");
+  if((s[3] = connectsock(host,pn4))<0)
+    printf("Not connected to server 4\n");
 
   while(1)
   { 
@@ -107,7 +112,7 @@ main(int argc, char *argv[])
       int n;
       if(send(s[i],userpass,strlen(userpass), 0)<0)
        printf("sending failed\n");
-      n=recv(s[i],auth,1,0);
+       n=recv(s[i],auth,1,0);
       
       if(!strcmp(auth,"F"))
       {
@@ -119,7 +124,7 @@ main(int argc, char *argv[])
     
   //send username password to each server see if it matches or not
 	
-		printf(" Enter the command \n");
+		printf("Enter the command \n");
     fgets (command,50, stdin);
     printf("%s",command);
 
@@ -190,10 +195,9 @@ void list()
       while(1)
       {
           nofbytes = recv(s[i],buf,100,0); // check while too 
-        	printf("%s \n",buf);
-	        
           if(!strcmp(buf,"F"))
             break;
+          printf("%s \n",buf);
           memset(buf,0,100);
       }
   }
@@ -266,7 +270,6 @@ void downloading(char *name,int s0,int s1, int s2, int s3)
      if(p[i]==NULL)
       printf("ERROR\n");
      
-     printf("partgg  %s\n",p[i]);
      printf("Text received2 is %s\n",text);
      
      if(!strcmp(p[i],"1"))
@@ -304,7 +307,6 @@ void downloading(char *name,int s0,int s1, int s2, int s3)
 
     for(i=0;i<4;i++)
     {
-      printf("?");
        if(m[i]==1)
         check=1;
        else
@@ -318,8 +320,11 @@ void downloading(char *name,int s0,int s1, int s2, int s3)
       printf("Incomplete file\n");
     else
     {
+          char path2[200];
+          strcpy(path2,root);
+          strcat(path2,"new.txt");
           printf("File received completely\n");
-          FILE *fp= fopen("/home/avneendra/Desktop/netsys/Lab2/DFC/great.txt","w+");
+          FILE *fp= fopen(path2,"w+");
           fprintf(fp,"%s",text1);
           fprintf(fp,"%s",text2);
           fprintf(fp,"%s",text3);
@@ -354,18 +359,21 @@ char* protocol(int s)
     if((nofbytes=send(s,msg2,sizeof msg2,0))<0)  //partnumber received so sending ok to server
           printf("Error sending OK \n");
 
-    printf(" Partnumber ok msg sent %s\n",msg2);   
-		printf("Start receiving file\n");
+    printf(" filename ack sent %s\n",msg2);   
+		
     
     nofbytes=0;
 
-   
+  
 
-		nofbytes=recv(s,reply2,2048,0);
+		if(nofbytes=recv(s,reply2,2048,0)>0)
+        fg++;
     
-    if(s==3 || s==4)
+    
+     if((fg==2) || (s==5) ||(s==6))
     {
           nofbytes=recv(s,reply2,2048,0);
+          fg=0;
     }
 		
 
@@ -379,7 +387,8 @@ char* protocol(int s)
 
     
 
-  	text=reply2;		
+  	text=reply2;	
+
     printf("part received %s\n",part);
 		return part;
 }
@@ -388,9 +397,9 @@ void uploading(char *name)
 {
   int sum=0,i,size,bytes;
   int nofbytes[]={0,0,0,0,0,0,0,0};
-  char abc[32],msg[10];
+  char msg[10];
+  unsigned char abc[16];
   char buffer,c,perm[60],temp1[60],temp2[60],temp3[60],temp4[60],part1[30],part2[30],part3[30],part4[30],data[1024],buf[1024];
-  char *root="/home/avneendra/Desktop/textfiles/";
   
   memset(abc,0,32);
   memset(msg,0,10);
@@ -428,23 +437,27 @@ void uploading(char *name)
     printf("FILE NOT OPENING\n");
  
   
-  //MD5 sum and all
   MD5_CTX mdContext;
   MD5_Init (&mdContext);
-  while ((bytes = fread (data, 1, 1024, fp)) != 0)
+  while ((bytes = fread (data, 1,1024,fp)) != 0)
   MD5_Update (&mdContext, data, bytes);
-  
   MD5_Final (abc,&mdContext);
 
- int decimal[32];
- for (i=0; i < 32; i++)
- {   
-  	decimal[i] = hextodec(abc[i]);
-	  sum = (sum*16 + decimal[i])%4;
- }
+  int n;
+  char *out = (char*)malloc(33);
+
+   for (n = 0; n < 16; ++n) 
+     snprintf(&(out[n*2]), 16*2, "%02x", (unsigned int)abc[n]);
+   
+   int decimal[32];
+   for (i=0; i < 32; i++)
+   {   
+  	 decimal[i] = hextodec(out[i]);
+	   sum = (sum*16 + decimal[i])%4;
+   }
 
   int x=sum;
-  printf("\n X is %d\n",x);
+  printf("MD5sum is %d\n",x);
   fseek(fp, 0L, SEEK_SET);
   fseek(fp, 0L, SEEK_END);
   size = ftell(fp);
@@ -506,49 +519,41 @@ void uploading(char *name)
     		
         //DFS1   	
     		sendtoserver(fp1,part1,1,s[0],divsize);  
-        printf("c");
         if((nofbytes[0]=recv(s[0],msg,sizeof msg,0))<0)
           printf("Error in message \n"); 	
     	  
         //DFS2   		
     		sendtoserver(fp2,part2,2,s[1],divsize);
-        printf("c"); 
         if((nofbytes[1]=recv(s[1],msg,sizeof msg,0))<0)
           printf("Error in message \n");      
       	
         //DFS3    	
     		sendtoserver(fp3,part3,3,s[2],divsize);
-        printf("c"); 
         if((nofbytes[2]=recv(s[2],msg,sizeof msg,0))<0)
           printf("Error in message \n");  
     		
     		//DFS4   	
         sendtoserver(fp4,part4,4,s[3],divsize); 
-        printf("c");  
         if((nofbytes[7]=recv(s[3],msg,sizeof msg,0))<0)
           printf("Error in message \n");     		
     		
         //DFS1  
         sendtoserver(fp2,part2,1,s[0],divsize);
-        printf("c");
         if((nofbytes[0]=recv(s[0],msg,sizeof msg,0))<0)
           printf("Error in message \n");
         
         //DFS2
         sendtoserver(fp3,part3,2,s[1],divsize);
-        printf("c"); 
         if((nofbytes[1]=recv(s[1],msg,sizeof msg,0))<0)
           printf("Error in message \n");      
         
         //DFS3
         sendtoserver(fp4,part4,3,s[2],divsize);
-        printf("c"); 
         if((nofbytes[2]=recv(s[2],msg,sizeof msg,0))<0)
           printf("Error in message \n");  
         
         //DFS4
         sendtoserver(fp1,part1,4,s[3],divsize);
-        printf("c");  
         if((nofbytes[7]=recv(s[3],msg,sizeof msg,0))<0)
           printf("Error in message \n");  
     		break;
@@ -556,50 +561,42 @@ void uploading(char *name)
     case 1: // #1-(4,1), #2-(1,2), #3-(2,3), #4-(3,4)
         //DFS1
     		sendtoserver(fp4,part4,1,s[0],divsize);	
-        printf("c");
         if((nofbytes[0]=recv(s[0],msg,sizeof msg,0))<0)
           printf("Error in message \n");  
          
     	   //DFS2
     		sendtoserver(fp1,part1,2,s[1],divsize); 
-        printf("c"); 
         if((nofbytes[1]=recv(s[1],msg,sizeof msg,0))<0)
           printf("Error in message \n");       
     		
     		//DFS3    		
     		sendtoserver(fp2,part2,3,s[2],divsize);   	
-        printf("c"); 
         if((nofbytes[2]=recv(s[2],msg,sizeof msg,0))<0)
           printf("Error in message \n");  
 
         //DFS4   
     		sendtoserver(fp3,part3,4,s[3],divsize);   
-        printf("c");  
         if((nofbytes[7]=recv(s[3],msg,sizeof msg,0))<0)
           printf("Error in message \n");  
 
 
         //DFS1
         sendtoserver(fp1,part1,1,s[0],divsize);
-        printf("c");
         if((nofbytes[0]=recv(s[0],msg,sizeof msg,0))<0)
           printf("Error in message \n"); 
 
         //DFS2    
         sendtoserver(fp2,part2,2,s[1],divsize);
-        printf("c"); 
         if((nofbytes[1]=recv(s[1],msg,sizeof msg,0))<0)
           printf("Error in message \n"); 
 
         //DFS3  
         sendtoserver(fp3,part3,3,s[2],divsize);
-        printf("c"); 
         if((nofbytes[2]=recv(s[2],msg,sizeof msg,0))<0)
           printf("Error in message \n");  
 
         //DFS4   		
     		sendtoserver(fp4,part4,4,s[3],divsize);
-        printf("c");  
         if((nofbytes[7]=recv(s[3],msg,sizeof msg,0))<0)
           printf("Error in message \n");  
     		break;
@@ -607,102 +604,84 @@ void uploading(char *name)
     case 2: // #2-(4,1), #3-(1,2), #4-(2,3), #1-(3,4)
     		//DFS1
         sendtoserver(fp3,part3,1,s[0],divsize); 
-        printf("c");
         if((nofbytes[0]=recv(s[0],msg,sizeof msg,0))<0)
           printf("Error in message \n");   		
     		
         //DFS2
     		sendtoserver(fp4,part4,2,s[1],divsize);	
-    	  printf("c"); 
         if((nofbytes[1]=recv(s[1],msg,sizeof msg,0))<0)
           printf("Error in message \n"); 
            		
         //DFS3
     		sendtoserver(fp1,part1,3,s[2],divsize);  
-        printf("c"); 
         if((nofbytes[2]=recv(s[2],msg,sizeof msg,0))<0)
           printf("Error in message \n"); 	
     	
         //DFS4
     		sendtoserver(fp2,part2,4,s[3],divsize);  
-        printf("c");  
         if((nofbytes[7]=recv(s[3],msg,sizeof msg,0))<0)
           printf("Error in message \n"); 	
     		
 
         //DFS1
         sendtoserver(fp4,part4,1,s[0],divsize);
-        printf("c");
         if((nofbytes[0]=recv(s[0],msg,sizeof msg,0))<0)
           printf("Error in message \n"); 
         
         //DFS2
         sendtoserver(fp1,part1,2,s[1],divsize);
-        printf("c"); 
         if((nofbytes[1]=recv(s[1],msg,sizeof msg,0))<0)
           printf("Error in message \n"); 
         
         //DFS3
         sendtoserver(fp2,part2,3,s[2],divsize);
-        printf("c"); 
         if((nofbytes[2]=recv(s[2],msg,sizeof msg,0))<0)
           printf("Error in message \n");        
         
         //DFS4
         sendtoserver(fp3,part3,4,s[3],divsize);
-        printf("c");  
         if((nofbytes[7]=recv(s[3],msg,sizeof msg,0))<0)
           printf("Error in message \n");
     		break;
 
     case 3: // #3-(4,1), #4-(1,2), #1-(2,3), #2-(3,4)
     		//DFS1    	    		
-        printf("divsize %d\n",divsize);
-        sendtoserver(fp2,part2,1,s[0],divsize);  
-        printf("c");
-        
+        sendtoserver(fp2,part2,1,s[0],divsize);         
         if((nofbytes[0]=recv(s[0],msg,sizeof msg,0))<0)
           printf("Error in message \n"); 
     		
         //DFS2
     		sendtoserver(fp3,part3,2,s[1],divsize); 
-        printf("c"); 
         if((nofbytes[1]=recv(s[1],msg,sizeof msg,0))<0)
           printf("Error in message \n"); 
     		
     		//DFS3
     		sendtoserver(fp4,part4,3,s[2],divsize);	
-        printf("c"); 
         if((nofbytes[2]=recv(s[2],msg,sizeof msg,0))<0)
           printf("Error in message \n");
     		
     		//DFS4
 			  sendtoserver(fp1,part1,4,s[3],divsize); 
-         printf("c"); 
           if((nofbytes[3]=recv(s[3],msg,sizeof msg,0))<0)
           printf("Error in message \n");  	
         
         //DFS1  
         sendtoserver(fp3,part3,1,s[0],divsize);
-         printf("c");
           if((nofbytes[4]=recv(s[0],msg,sizeof msg,0))<0)
           printf("Error in message \n");
 
         //DFS2
          sendtoserver(fp4,part4,2,s[1],divsize);
-         printf("c"); 
           if((nofbytes[5]=recv(s[1],msg,sizeof msg,0))<0)
           printf("Error in message \n");
 
         //DFS3
         sendtoserver(fp1,part1,3,s[2],divsize);
-         printf("c");
           if((nofbytes[6]=recv(s[2],msg,sizeof msg,0))<0)
           printf("Error in message \n");
 
         //DFS4
         sendtoserver(fp2,part2,4,s[3],divsize);
-        printf("c");  
         if((nofbytes[7]=recv(s[3],msg,sizeof msg,0))<0)
           printf("Error in message \n");
         
@@ -720,8 +699,9 @@ void uploading(char *name)
 void sendtoserver(FILE *fpart,char *part,int server,int s,int size)
 {
 	
-  int i,nofbytes[4];
-	char a[1],buf[24],b;
+  int i,nofbytes[4],key=0;
+	char a[1],buf[24],b,enc[1];
+  char k[]={'a'}; //Encryption key 
   int n[4],bytes;
   memset(a,0,1);
   memset(buf,0,24);
@@ -736,8 +716,9 @@ void sendtoserver(FILE *fpart,char *part,int server,int s,int size)
                 else
   		          {
                     while((a[0]=fgetc(fpart))!=EOF)   		          
- 					         {	
-	    				       if((nofbytes[0]=send(s,a,1,0))<0)
+ 					         {
+                     enc[0] = a[0] ^ k[0];	
+	    				       if((nofbytes[0]=send(s,enc,1,0))<0)
 		    			       printf("Error sending file \n");
     				       }               
     			      }
@@ -750,10 +731,9 @@ void sendtoserver(FILE *fpart,char *part,int server,int s,int size)
   		          {
       					   while((a[0]=fgetc(fpart))!=EOF)    
        					  { 
-                     if((nofbytes[1]=send(s,a,1,0))<0)
+                      enc[0] = a[0] ^ k[0];    
+                     if((nofbytes[1]=send(s,enc,1,0))<0)
                      printf("Error sending file \n");
-
-                    // printf("%s",a);
                    }               
     			      }
               	break;
@@ -764,9 +744,9 @@ void sendtoserver(FILE *fpart,char *part,int server,int s,int size)
   		        {
 					        while((a[0]=fgetc(fpart))!=EOF) 		          
  					      { 
-                     if((nofbytes[2]=send(s,a,1,0))<0)
+                     enc[0] = a[0] ^ k[0]; 
+                     if((nofbytes[2]=send(s,enc,1,0))<0)
                      printf("Error sending file \n");
-
                 }               
     			    }
   		     	   break;
@@ -777,7 +757,8 @@ void sendtoserver(FILE *fpart,char *part,int server,int s,int size)
   		          {
 					         while((a[0]=fgetc(fpart))!=EOF)  		          
  					        {	
-    	    				   if((nofbytes[3]=send(s,a,1,0))<0)
+                      enc[0] = a[0] ^ k[0];  
+    	    				   if((nofbytes[3]=send(s,enc,1,0))<0)
     		    			   printf("Error sending file \n");
         				  }
         			  }
@@ -811,7 +792,7 @@ int sending(int fd,char *part,int size)
           return 0;
     }
   
-  printf("SIZE %d\n",size);
+  printf("Size of the part of file is %d Sent to server %d\n",size,fd-2);
   if((nofbytes=send(fd,&size,sizeof(int),0))<0)
      printf("error sending size\n");
   
@@ -875,80 +856,14 @@ errexit(const char *format, ...)
 }
 
 
-int hextodec(char a)
+int hextodec(int c)
 {
-int s;
-	switch(a)
-    {
-        case 'a':
-                s=10;
-                return s;
-        case 'A':
-                s=10;
-                return s;
-        case 'b':
-                s=11;
-                return s;
-        case 'B':
-                s=11;
-                return s;
-        case 'c':
-                s=12;
-                return s;
-        case 'C':
-                s=12;
-                return s;
-        case 'd':
-                s=13;
-                return s;
-        case 'D':
-                s=13;
-                return s;
-        case 'e':
-                s=14;
-                return s;
-        case 'E':
-                s=14;
-                return s;        
-        case 'f':
-                s=15;
-                return s;
-        case 'F':
-                s=15;
-                return s;
-        case '1':
-                s=1;
-                return s;
-        case '2':
-                s=2;
-                return s;
-         case '3':
-                s=3;
-                return s;
-         case '4':
-                s=4;
-                return s;
-          case '5':
-                s=5;
-                return s;
-           case '6':
-                s=6;
-                return s;
-           case '7':
-                s=7;
-                return s;
-           case '8':
-                s=8;
-                return s;
-           case '9':
-                s=9;
-                return s;
-           case '0':
-                s=0;
-                return s;
-        default:
-                s=99;
-                return s;
-    }
+
+  if (c >= '0' && c <= '9')
+    return c - '0';
+  if (c >= 'a' && c <= 'f')
+    return c - 'a' + 10;
+  else
+    return -1;  
 
 }
