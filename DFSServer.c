@@ -34,7 +34,7 @@ main(int argc, char *argv[])
 	struct sockaddr_in fsin;	      /* the from address of a client	*/
 	int	msock1,msock2,msock3,msock4,ssock1,ssock2,ssock3,ssock4; /* master server socket		*/
     unsigned int	alen;		    /* from-address length		*/
-	
+	int pid1,pid2,pid3,pid4;
 	
 	switch (argc) 
 	{
@@ -60,29 +60,97 @@ main(int argc, char *argv[])
     {	
 		if((ssock1 = accept(msock1, (struct sockaddr *)&fsin, &alen))>0)
 		{
-			  if (dfs(ssock1,1) < 0) 
-		      {
+			  pid1=fork();
+			  
+			  if(pid1<0)
+			  {
+			  	printf("error on fork \n");
+			  	exit(1);
+			  }
+              else if(pid1==0)
+              {
+              	close(msock1);
+              	
+              	if (dfs(ssock1,1) < 0) 
+		        {
 		         (void) close(ssock1);
 		          break;	
-		      }
+		        }
+              
+              }
+              else
+              {
+              	printf("Closing current client request");
+            	close(ssock1);
+              }
+			  
 		}	
 		
 		if((ssock2 = accept(msock2, (struct sockaddr *)&fsin, &alen))>0)
 		{
-			if (dfs(ssock2,2) < 0) 
-		      (void) close(ssock2);
+			pid2=fork();
+			if(pid2<0)
+			 {
+			  	printf("error on fork \n");
+			  	exit(1);
+			 }
+            else if(pid2==0)
+             {
+             	close(msock2);
+				
+				if (dfs(ssock2,2) < 0) 
+		      	(void) close(ssock2);
+			 }
+			 else
+			 {
+			 	printf("Closing current client request");
+            	close(ssock2);
+			 }
 		}	
 		
 		if((ssock3 = accept(msock3, (struct sockaddr *)&fsin, &alen))>0)
 		{
-			if (dfs(ssock3,3) < 0) 
-		      (void) close(ssock3);
+			pid3=fork();
+			if(pid3<0)
+			 {
+			  	printf("error on fork \n");
+			  	exit(1);
+			 }
+            else if(pid3==0)
+             {
+             	close(msock3);
+				
+				if (dfs(ssock3,3) < 0) 
+			      (void) close(ssock3);
+		     }
+		     else
+		     {
+		     	printf("Closing current client request");
+            	close(ssock3);
+		     }
 		}	
 		
 		if((ssock4 = accept(msock4, (struct sockaddr *)&fsin, &alen))>0)
 		{
-			if (dfs(ssock4,4) < 0) 
-		      (void) close(ssock4);
+			pid4=fork();
+			if(pid4<0)
+			{
+			   	printf("error on fork \n");
+			  	exit(1);	
+			}	
+            else if(pid4==0)
+            {
+            	close(msock4);
+			  
+			  if (dfs(ssock4,4) < 0) 
+		        (void) close(ssock4);
+
+            }	
+            else
+            {
+            	printf("Closing current client request");
+            	close(ssock4);
+            }
 		}	
 		
 	}
