@@ -234,7 +234,7 @@ int dfs(int fd,int servernum)
 		   {
 			  int checks=0;
 			  char m[]="O";
-			  //nofbytes=send(fd,m,1,0);
+			  nofbytes=send(fd,m,1,0);
 			  
 			  while(checks<2)
              { 
@@ -543,7 +543,7 @@ int dfs(int fd,int servernum)
 					    while((nofbyte=recv(fd,come,1,0))>0)
 					    {
 					       char k[]={'a'};	
-					       decryp[0]=come[0];
+					       decryp[0]=come[0] ^ k[0];
 
 					       printf("%c",*come);
 					       fwrite(decryp,1,1,fc);

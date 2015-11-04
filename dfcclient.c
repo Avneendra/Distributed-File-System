@@ -116,12 +116,12 @@ main(int argc, char *argv[])
       int n;
       if(send(s[i],userpass,strlen(userpass), 0)<0)
        printf("sending failed\n");
-       //n=recv(s[i],auth,1,0);
+       n=recv(s[i],auth,1,0);
       
-      //if(!strcmp(auth,"F"))  //If incorrect password or username given by user
+      if(!strcmp(auth,"F"))  //If incorrect password or username given by user
       {
-        //printf("Incorrect username or password\n");
-        //exit(0);
+         printf("Incorrect username or password\n");
+         exit(0);
       }
 
     }
@@ -728,7 +728,7 @@ void sendtoserver(FILE *fpart,char *part,int server,int s,int size)
   		          {
                     while((a[0]=fgetc(fpart))!=EOF)   		          
  					         {
-                     enc[0] = a[0] ;	
+                     enc[0] = a[0] ^ k[0] ;	
 	    				       if((nofbytes[0]=send(s,enc,1,0))<0)
 		    			       printf("Error sending file \n");
     				       }               
@@ -742,7 +742,7 @@ void sendtoserver(FILE *fpart,char *part,int server,int s,int size)
   		          {
       					   while((a[0]=fgetc(fpart))!=EOF)    
        					  { 
-                      enc[0] = a[0];    
+                      enc[0] = a[0] ^ k[0];    
                      if((nofbytes[1]=send(s,enc,1,0))<0)
                      printf("Error sending file \n");
                    }               
@@ -755,7 +755,7 @@ void sendtoserver(FILE *fpart,char *part,int server,int s,int size)
   		        {
 					        while((a[0]=fgetc(fpart))!=EOF) 		          
  					      { 
-                     enc[0] = a[0]; 
+                     enc[0] = a[0] ^ k[0]; 
                      if((nofbytes[2]=send(s,enc,1,0))<0)
                      printf("Error sending file \n");
                 }               
@@ -768,7 +768,7 @@ void sendtoserver(FILE *fpart,char *part,int server,int s,int size)
   		          {
 					         while((a[0]=fgetc(fpart))!=EOF)  		          
  					        {	
-                      enc[0] = a[0];  
+                      enc[0] = a[0] ^ k[0];  
     	    				   if((nofbytes[3]=send(s,enc,1,0))<0)
     		    			   printf("Error sending file \n");
         				  }
